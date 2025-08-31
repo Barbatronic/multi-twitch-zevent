@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Z‑Event 2025 – Multi‑flux avec Focus</title>
+  <style>
+    :root{--bg:#0f1115;--panel:#171923;--muted:#a0aec0;--text:#e2e8f0;--accent:#6ee7b7;--danger:#f56565;--line:#2d3748}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,Noto Sans,sans-serif}
+    header{padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121520,#0f1115);position:sticky;top:0;z-index:5}
+    h1{margin:0;font-size:clamp(18px,2.5vw,24px)}
+    .sub{font-size:12px;opacity:.8}
+    .toolbar{display:grid;gap:8px;padding:12px 16px;background:#0f131a;border-bottom:1px solid var(--line)}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    input[type=text],select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 12px;outline:0}
+    input[type=text]{width:min(460px,100%)}
+    button{background:#1f2937;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px}
+    button:hover{border-color:#3b4252}
+    .accent{border-color:#256d5a}
+    .danger{border-color:#6b2a2a}
+    .focus{display:flex;gap:8px;padding:12px;background:#0f131a;border-bottom:1px solid var(--line)}
+    .focus .video{flex:2}
+    .focus .chat{flex:1}
+    .focus iframe{width:100%;height:500px;border:0}
+    .grid{display:grid;gap:10px;padding:12px 16px 40px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+    .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+    .card header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;background:#121421;border-bottom:1px solid var(--line)}
+    .card .name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card .actions{display:flex;gap:6px}
+    .embed{aspect-ratio:16/9;background:#0b0d14;display:block}
+    iframe.tplayer{width:100%;height:100%;border:0;display:block}
+    footer{padding:10px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Z‑Event 2025 – Multi‑flux <span class="sub">avec focus vidéo+chat</span></h1>
+  </header>
+
+  <section class="toolbar">
+    <div class="row">
+      <input id="channelInput" type="text" list="zevent-list" placeholder="Ajouter un streamer (ex. ZeratoR)" />
+      <datalist id="zevent-list"></datalist>
+      <button id="addBtn" class="accent">Ajouter</button>
+      <button id="clearBtn" class="danger">Tout supprimer</button>
+      <label>Colonnes :
+        <select id="cols">
+          <option value="auto">Auto</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
+    </div>
+  </section>
+
+  <div id="focus" class="focus" style="display:none">
+    <div class="video"><iframe id="focusVideo" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
+    <div class="chat"><iframe id="focusChat" allowfullscreen></iframe></div>
+  </div>
+
+  <main id="grid" class="grid"></main>
+
+  <footer>
+    Liste Z‑Event 2025 : plateau Montpellier (50 noms). Vous pouvez aussi saisir toute autre chaîne.
+  </footer>
+
+  <script>
+    const ONSITE_2025=["AlphaCast","AngleDroit","AntoineDaniel","AVAMind","BagheraJones","byilhann","chowh1","Clemovitch","CrocodyleTV","DamDamLive","Doigby","Domingo","DrFeelGood","EnjoyPhoenix","Etoiles","Flamby","Gius","Gom4rt","helydia","HortyUnderscore","Jirayalecochon","JLTomy","Joueur_du_Grenier","Joyca","KennyStream","Lapi","LittleBigWhale","m4fgaming","Mastu","mistermv","MoMaN","Mynthos","Nico_la","Ponce","Pressea","Rivenzi","Sakor_","samueletienne","Shisheyu","Sundae","SylvainLyve","TheGreatReview","TheGuill84","theodort","Ultia","zacknani","ZeratoR"];
+
+    const grid=document.getElementById('grid');
+    const input=document.getElementById('channelInput');
+    const datalist=document.getElementById('zevent-list');
+    const addBtn=document.getElementById('addBtn');
+    const clearBtn=document.getElementById('clearBtn');
+    const colsSel=document.getElementById('cols');
+    const focus=document.getElementById('focus');
+    const focusVideo=document.getElementById('focusVideo');
+    const focusChat=document.getElementById('focusChat');
+    const parentHost=window.location.hostname||'localhost';
+
+    ONSITE_2025.forEach(n=>{const o=document.createElement('option');o.value=n;datalist.appendChild(o);});
+
+    const key=s=>(s||'').trim().toLowerCase();
+    const clean=s=>(s||'').trim();
+
+    function makeSrc(channel){
+      const ch=key(channel);
+      const params=new URLSearchParams({channel:ch,parent:parentHost,autoplay:'true',muted:'true'});
+      return `https://player.twitch.tv/?${params.toString()}`;
+    }
+    function makeChatSrc(channel){
+      const ch=key(channel);
+      return `https://www.twitch.tv/embed/${ch}/chat?parent=${parentHost}`;
+    }
+    function setFocus(channel){
+      focus.style.display='flex';
+      focusVideo.src=makeSrc(channel);
+      focusChat.src=makeChatSrc(channel);
+    }
+
+    function makeCard(channel){
+      const ch=clean(channel);if(!ch)return;
+      const card=document.createElement('article');card.className='card';
+      const head=document.createElement('header');
+      const title=document.createElement('div');title.className='name';title.textContent=ch;
+      const actions=document.createElement('div');actions.className='actions';
+      const focusBtn=document.createElement('button');focusBtn.textContent='Focus';
+      const removeBtn=document.createElement('button');removeBtn.textContent='Supprimer';removeBtn.className='danger';
+      actions.append(focusBtn,removeBtn);head.append(title,actions);
+
+      const embedBox=document.createElement('div');embedBox.className='embed';
+      const iframe=document.createElement('iframe');
+      iframe.className='tplayer';iframe.allow='autoplay; fullscreen';iframe.allowFullscreen=true;
+      iframe.scrolling='no';iframe.referrerPolicy='origin-when-cross-origin';iframe.src=makeSrc(ch);
+      embedBox.appendChild(iframe);
+
+      card.append(head,embedBox);
+      grid.appendChild(card);
+
+      focusBtn.addEventListener('click',()=>setFocus(ch));
+      removeBtn.addEventListener('click',()=>{card.remove();persist();});
+      persist();
+    }
+
+    function addFromInput(){const v=clean(input.value);if(!v)return;makeCard(v);input.value='';}
+
+    addBtn.addEventListener('click',addFromInput);
+    input.addEventListener('keydown',e=>{if(e.key==='Enter')addFromInput();});
+    clearBtn.addEventListener('click',()=>{grid.innerHTML='';focus.style.display='none';persist();});
+
+    colsSel.addEventListener('change',applyCols);
+    function applyCols(){grid.classList.remove('cols-2','cols-3','cols-4');const v=colsSel.value;if(['2','3','4'].includes(v))grid.classList.add(`cols-${v}`);persist();}
+
+    function persist(){
+      const list=Array.from(grid.querySelectorAll('.card .name')).map(n=>n.textContent.trim());
+      const state={channels:list,cols:colsSel.value};
+      localStorage.setItem('zevent_multi_focus_state',JSON.stringify(state));
+    }
+
+    function restore(){
+      let state=null;try{state=JSON.parse(localStorage.getItem('zevent_multi_focus_state')||'null');}catch(e){}
+      const channels=state?.channels||ONSITE_2025.slice(0,6);
+      const cols=state?.cols||'auto';
+      colsSel.value=cols;applyCols();
+      channels.forEach(makeCard);
+    }
+
+    restore();
+  </script>
+</body>
+</html>
