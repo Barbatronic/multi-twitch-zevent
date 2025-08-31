@@ -38,5 +38,18 @@ Cette page HTML permet de suivre **plusieurs streamers Twitch du Z‑Event** en 
 - Cliquez sur **Désactiver** pour le masquer.
 
 ## Licence
-Projet à usage personnel/communautaire pendant le **Z‑Event 2025**. Aucune garantie sur la disponibilité des flux ou des API externes.
 
+Ce projet est un outil communautaire non officiel permettant d’agréger plusieurs flux Twitch du Z‑Event 2025 (ou autre) sur une même page.
+
+Mentions légales :
+
+* La marque **Z‑Event** appartient à ses ayants droit (société organisatrice et partenaires officiels).
+* Les flux et contenus intégrés sont fournis directement par Twitch ; les propos, images et sons restent la propriété de leurs auteurs respectifs.
+* Cet outil est fourni « en l’état », sans aucune garantie d’aucune sorte.
+* Aucune responsabilité ne peut être engagée concernant l’utilisation, le bon fonctionnement ou la disponibilité des flux.
+* L’outil n’enregistre ni ne modifie les flux ; il se contente d’agréger des iframes Twitch conformément à l’API publique.
+
+Licence :
+
+* Le code source est disponible sur son dépôt GitHub associé.
+* Licence **Creative Commons CC BY‑NC‑ND 4.0** : vous pouvez partager et utiliser l’outil à titre non commercial, en créditant l’auteur, mais **vous ne pouvez ni modifier ni en faire un usage commercial**.
