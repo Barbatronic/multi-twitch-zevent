@@ -3,75 +3,41 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Z‑Event 2025 – Multi‑flux Twitch (sans chat)</title>
-  <!--
-  Page multi‑flux Twitch pour suivre plusieurs streamers du Z‑Event sur une seule page.
-  Contraintes Twitch : le paramètre `parent` DOIT correspondre au nom de domaine qui sert la page.
-  • En local (file://), Twitch bloque l’embed. Servez la page via un petit serveur local ou hébergez‑la (ex: GitHub Pages).
-  • Cette page détecte automatiquement `parent` avec `window.location.hostname`.
-
-  Astuce test local rapide :
-    - Node : `npx serve` dans le dossier, puis ouvrez l’URL fournie.
-    - Python : `python3 -m http.server 8080` puis http://localhost:8080
-
-  Fonctionnalités :
-    - Liste des streamers Z‑Event 2025 (plateau Montpellier) prête à l’emploi, + saisie libre.
-    - Ajout/Suppression de flux, grille responsive, choix du nombre de colonnes.
-    - Mode « Solo audio » (un seul flux non muet à la fois). Par défaut, tout est muet pour autoriser l’autoplay.
-    - Persistance (URL & localStorage).
-    - Pas de focus (volontairement retiré).
-
-  Note légale : cette page n’enregistre pas les flux (pas de capture/recording) et ne contourne aucune mesure de Twitch.
-  -->
+  <title>Z‑Event 2025 – Multi‑flux (iframe player only, sans chat)</title>
   <style>
-    :root {
-      --bg: #0f1115; --panel:#171923; --muted:#a0aec0; --text:#e2e8f0; --accent:#6ee7b7; --danger:#f56565; --line:#2d3748;
-    }
-    * { box-sizing: border-box; }
-    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif; background:var(--bg); color:var(--text); }
-    header { padding: 12px 16px; border-bottom:1px solid var(--line); background:linear-gradient(180deg, #121520, #0f1115); position:sticky; top:0; z-index:5; }
-    h1 { margin:0; font-size: clamp(18px, 2.5vw, 24px); }
-    .sub { font-size:12px; opacity:.8; }
-
-    .toolbar { display:grid; gap:8px; grid-template-columns: 1fr; padding:12px 16px; background: #0f131a; border-bottom:1px solid var(--line); }
-    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-    .row > * { flex: 0 0 auto; }
-    input[type="text"], select { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:10px 12px; outline:none; }
-    input[type="text"] { width: min(460px, 100%); }
-    button { background:#1f2937; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 12px; cursor:pointer; font-weight:600; }
-    button:hover { border-color:#3b4252; }
-    .accent { border-color:#256d5a; }
-    .danger { border-color:#6b2a2a; }
-    label { font-size:14px; opacity:.9; }
-    .hint { font-size:12px; color:var(--muted); }
-
-    .grid { display:grid; gap:10px; padding:12px 16px 40px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
-    .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
-    .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
-    .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-
-    .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
-    .card header { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; position:static; background:#121421; border-bottom:1px solid var(--line); }
-    .card header .name { font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .card header .actions { display:flex; gap:6px; }
-    .card header button { padding:6px 10px; font-size:12px; border-radius:8px; }
-    .embed { aspect-ratio: 16 / 9; background:#0b0d14; display:block; }
-
-    .banner { background:#2d3748; color:#fff; padding:8px 12px; font-size:13px; }
-    .banner strong { color:var(--accent); }
-
-    .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:#141825; }
-    .pill input { margin:0; }
-
-    footer { padding:10px 16px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); }
-    a { color: #93e6a5; text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    :root{--bg:#0f1115;--panel:#171923;--muted:#a0aec0;--text:#e2e8f0;--accent:#6ee7b7;--danger:#f56565;--line:#2d3748}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,Noto Sans,sans-serif}
+    header{padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121520,#0f1115);position:sticky;top:0;z-index:5}
+    h1{margin:0;font-size:clamp(18px,2.5vw,24px)}
+    .sub{font-size:12px;opacity:.8}
+    .toolbar{display:grid;gap:8px;padding:12px 16px;background:#0f131a;border-bottom:1px solid var(--line)}
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    input[type=text],select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 12px;outline:0}
+    input[type=text]{width:min(460px,100%)}
+    button{background:#1f2937;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;font-weight:600}
+    button:hover{border-color:#3b4252}
+    .accent{border-color:#256d5a}
+    .danger{border-color:#6b2a2a}
+    .grid{display:grid;gap:10px;padding:12px 16px 40px;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}
+    .grid.cols-2{grid-template-columns:repeat(2,1fr)}
+    .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+    .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+    .card header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;position:static;background:#121421;border-bottom:1px solid var(--line)}
+    .card .name{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card .actions{display:flex;gap:6px}
+    .card header button{padding:6px 10px;font-size:12px;border-radius:8px}
+    .embed{aspect-ratio:16/9;background:#0b0d14;display:block}
+    iframe.tplayer{width:100%;height:100%;border:0;display:block}
+    .banner{background:#2d3748;color:#fff;padding:8px 12px;font-size:13px}
+    .banner strong{color:var(--accent)}
+    footer{padding:10px 16px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
   </style>
-  <script src="https://player.twitch.tv/js/embed/v1.js"></script>
 </head>
 <body>
   <header>
-    <h1>Z‑Event 2025 – Multi‑flux Twitch <span class="sub">(vidéo seule, sans chat)</span></h1>
+    <h1>Z‑Event 2025 – Multi‑flux <span class="sub">(iframe player only • sans chat)</span></h1>
   </header>
 
   <div id="parentBanner" class="banner" style="display:none"></div>
@@ -82,10 +48,7 @@
       <datalist id="zevent-list"></datalist>
       <button id="addBtn" class="accent">Ajouter</button>
       <button id="clearBtn" class="danger">Tout supprimer</button>
-    </div>
-    <div class="row">
-      <label class="pill"><input id="soloAudio" type="checkbox" />&nbsp;Mode Solo audio</label>
-      <label>Colonnes :
+      <label>Colonnes :
         <select id="cols">
           <option value="auto">Auto</option>
           <option value="2">2</option>
@@ -93,177 +56,107 @@
           <option value="4">4</option>
         </select>
       </label>
-      <span class="hint">Astuce : cliquez sur « Son » d’une carte pour n’entendre que ce flux (et couper les autres si « Solo » est activé).</span>
     </div>
+    <div class="row" style="font-size:12px;color:var(--muted)">Variante garantie « vidéo seule » : chaque tuile est un <code>&lt;iframe src="https://player.twitch.tv/..."&gt;</code>. Si vous voyiez un chat, vérifiez que l’URL n’est pas celle du chat (<code>/embed/{channel}/chat</code>) et qu’aucune extension navigateur n’ajoute d’overlay.</div>
   </section>
 
   <main id="grid" class="grid"></main>
 
   <footer>
-    Z‑Event 2025 : sélection préremplie des 50 streamers « plateau Montpellier ». Saisissez librement d’autres chaînes si besoin.
+    Liste Z‑Event 2025 : plateau Montpellier (50 noms). Vous pouvez aussi saisir toute autre chaîne.
   </footer>
 
   <script>
-    // ————————————— Données Z‑Event 2025 (plateau Montpellier) —————————————
-    // Source éditoriale (dernière màj 28/08/2025) : voir README / description de la page.
+    // --- Données Z‑Event 2025 (plateau Montpellier) ---
     const ONSITE_2025 = [
       "AlphaCast","AngleDroit","AntoineDaniel","AVAMind","BagheraJones","byilhann","chowh1","Clemovitch","CrocodyleTV","DamDamLive","Doigby","Domingo","DrFeelGood","EnjoyPhoenix","Etoiles","Flamby","Gius","Gom4rt","helydia","HortyUnderscore","Jirayalecochon","JLTomy","Joueur_du_Grenier","Joyca","KennyStream","Lapi","LittleBigWhale","m4fgaming","Mastu","mistermv","MoMaN","Mynthos","Nico_la","Ponce","Pressea","Rivenzi","Sakor_","samueletienne","Shisheyu","Sundae","SylvainLyve","TheGreatReview","TheGuill84","theodort","Ultia","zacknani","ZeratoR"
     ];
 
-    // ————————————— Éléments DOM —————————————
+    // --- DOM ---
     const grid = document.getElementById('grid');
     const input = document.getElementById('channelInput');
     const datalist = document.getElementById('zevent-list');
     const addBtn = document.getElementById('addBtn');
     const clearBtn = document.getElementById('clearBtn');
     const colsSel = document.getElementById('cols');
-    const soloChk = document.getElementById('soloAudio');
     const parentBanner = document.getElementById('parentBanner');
 
-    // Remplit la datalist
-    ONSITE_2025.forEach(name => {
-      const opt = document.createElement('option');
-      opt.value = name;
-      datalist.appendChild(opt);
-    });
+    // Remplir datalist
+    ONSITE_2025.forEach(n=>{ const o=document.createElement('option'); o.value=n; datalist.appendChild(o); });
 
-    // Résolution du paramètre parent pour Twitch
+    // parent= obligatoire pour Twitch Player
     const parentHost = window.location.hostname;
     if (!parentHost) {
-      parentBanner.style.display = 'block';
-      parentBanner.innerHTML = 'Cette page est ouverte en local (file://). Twitch bloque l\'intégration sans domaine. Servez la page via un serveur local (ex. <strong>npx serve</strong>) ou hébergez-la (GitHub Pages).';
+      parentBanner.style.display='block';
+      parentBanner.innerHTML = "Cette page est ouverte en local (file://). Twitch bloque l'intégration sans domaine. Servez via un petit serveur local (ex. <strong>npx serve</strong>) ou hébergez (GitHub Pages).";
     }
 
-    // Gestion des players
-    const players = new Map(); // channel(lower) -> { embed, player }
+    // Helpers
+    const key = s => (s||'').trim().toLowerCase();
+    const clean = s => (s||'').trim();
 
-    function channelKey(name){ return (name || '').trim().replace(/^\s+|\s+$/g,'').toLowerCase(); }
-    function normName(name){ return (name || '').trim(); }
+    function makeSrc(channel){
+      const ch = key(channel);
+      const params = new URLSearchParams({ channel: ch, parent: parentHost || 'localhost', autoplay: 'true', muted: 'true' });
+      return `https://player.twitch.tv/?${params.toString()}`; // Player seul (pas de chat)
+    }
 
     function makeCard(channel){
-      const key = channelKey(channel);
-      if (!key) return;
-      if (players.has(key)) return;
-
-      const id = `tw_${key}_${Math.random().toString(36).slice(2,9)}`;
-      const card = document.createElement('article');
-      card.className = 'card';
-      card.dataset.channel = key;
-
+      const ch = clean(channel); if(!ch) return;
+      const card = document.createElement('article'); card.className='card';
       const head = document.createElement('header');
-      const title = document.createElement('div');
-      title.className = 'name';
-      title.textContent = normName(channel);
+      const title = document.createElement('div'); title.className='name'; title.textContent = ch;
+      const actions = document.createElement('div'); actions.className='actions';
+      const openBtn = document.createElement('button'); openBtn.textContent = 'Ouvrir';
+      const removeBtn = document.createElement('button'); removeBtn.textContent = 'Supprimer'; removeBtn.className='danger';
+      actions.append(openBtn, removeBtn); head.append(title, actions);
 
-      const actions = document.createElement('div');
-      actions.className = 'actions';
-      const soundBtn = document.createElement('button');
-      soundBtn.textContent = 'Son';
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = 'Supprimer';
-      removeBtn.className = 'danger';
-      actions.append(soundBtn, removeBtn);
-      head.append(title, actions);
+      const embedBox = document.createElement('div'); embedBox.className='embed';
+      const iframe = document.createElement('iframe');
+      iframe.className='tplayer';
+      iframe.allow = 'autoplay; fullscreen';
+      iframe.allowFullscreen = true;
+      iframe.scrolling = 'no';
+      iframe.referrerPolicy = 'origin-when-cross-origin';
+      iframe.src = makeSrc(ch);
 
-      const embedBox = document.createElement('div');
-      embedBox.className = 'embed';
-      embedBox.id = id;
-
+      embedBox.appendChild(iframe);
       card.append(head, embedBox);
       grid.appendChild(card);
 
-      // Utilise le Player (vidéo seule, pas de chat)
-      const player = new Twitch.Player(embedBox, {
-        channel: key,
-        parent: parentHost ? [parentHost] : ['localhost'],
-        muted: true,
-        autoplay: true,
-        width: '100%',
-        height: '100%'
-      });
-
-      // Assure le mute au démarrage pour autoriser l'autoplay
-      try { player.setMuted(true); } catch(e){}
-      if (player.addEventListener) {
-        try { player.addEventListener(Twitch.Player.READY, () => { try { player.setMuted(true); } catch(e){} persist(); }); } catch(e){}
-      }
-
-      // Actions
-      soundBtn.addEventListener('click', () => {
-        if (!player) return;
-        if (soloChk.checked) {
-          // Couper tous les autres
-          players.forEach((obj, otherKey) => {
-            if (obj.player && otherKey !== key) try { obj.player.setMuted(true); } catch(e){}
-          });
-        }
-        try { player.setMuted(false); player.setVolume(1); } catch(e){}
-      });
-
-      removeBtn.addEventListener('click', () => {
-        card.remove();
-        players.delete(key);
-        persist();
-      });
-
-      players.set(key, { player });
-    }
-
-    function addChannelFromInput(){
-      const v = normName(input.value);
-      if (!v) return;
-      makeCard(v);
-      input.value = '';
-    }
-
-    addBtn.addEventListener('click', addChannelFromInput);
-    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addChannelFromInput(); }});
-    clearBtn.addEventListener('click', ()=>{ grid.innerHTML=''; players.clear(); persist(); });
-
-    // Gestion des colonnes
-    colsSel.addEventListener('change', applyCols);
-    function applyCols(){
-      grid.classList.remove('cols-2','cols-3','cols-4');
-      const v = colsSel.value;
-      if (v==='2' || v==='3' || v==='4') grid.classList.add(`cols-${v}`);
+      openBtn.addEventListener('click', ()=> window.open(`https://twitch.tv/${key(ch)}`,'_blank'));
+      removeBtn.addEventListener('click', ()=> { card.remove(); persist(); });
       persist();
     }
 
-    // Persistance (URL + localStorage)
+    function addFromInput(){ const v = clean(input.value); if(!v) return; makeCard(v); input.value=''; }
+
+    addBtn.addEventListener('click', addFromInput);
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter') addFromInput(); });
+    clearBtn.addEventListener('click', ()=>{ grid.innerHTML=''; persist(); });
+
+    colsSel.addEventListener('change', applyCols);
+    function applyCols(){ grid.classList.remove('cols-2','cols-3','cols-4'); const v=colsSel.value; if(['2','3','4'].includes(v)) grid.classList.add(`cols-${v}`); persist(); }
+
     function persist(){
-      const list = Array.from(grid.querySelectorAll('.card')).map(el => el.querySelector('.name').textContent.trim());
-      const state = {
-        channels: list,
-        cols: colsSel.value,
-        solo: soloChk.checked
-      };
-      localStorage.setItem('zevent_multi_state', JSON.stringify(state));
+      const list = Array.from(grid.querySelectorAll('.card .name')).map(n=>n.textContent.trim());
+      const state = { channels:list, cols:colsSel.value };
+      localStorage.setItem('zevent_multi_iframe_state', JSON.stringify(state));
       const params = new URLSearchParams(window.location.search);
-      params.set('c', list.map(s=>channelKey(s)).join(','));
+      params.set('c', list.map(key).join(','));
       params.set('cols', state.cols);
-      params.set('solo', state.solo ? '1':'0');
-      const newUrl = `${window.location.pathname}?${params.toString()}`;
-      history.replaceState(null,'',newUrl);
+      history.replaceState(null,'', `${window.location.pathname}?${params.toString()}`);
     }
 
     function restore(){
       const params = new URLSearchParams(window.location.search);
       const urlChannels = (params.get('c')||'').split(',').filter(Boolean);
       const urlCols = params.get('cols');
-      const urlSolo = params.get('solo');
-
-      let state = null;
-      try { state = JSON.parse(localStorage.getItem('zevent_multi_state')||'null'); } catch(e){}
-
+      let state = null; try { state = JSON.parse(localStorage.getItem('zevent_multi_iframe_state')||'null'); } catch(e){}
       const channels = urlChannels.length ? urlChannels : (state?.channels || ONSITE_2025.slice(0,6));
       const cols = urlCols || state?.cols || 'auto';
-      const solo = (urlSolo !== null) ? (urlSolo==='1') : !!(state?.solo);
-
-      colsSel.value = cols;
-      applyCols();
-      soloChk.checked = solo;
-
-      channels.forEach(ch => makeCard(ch));
+      colsSel.value = cols; applyCols();
+      channels.forEach(makeCard);
     }
 
     restore();
