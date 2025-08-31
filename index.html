@@ -172,23 +172,21 @@
       card.append(head, embedBox);
       grid.appendChild(card);
 
-      const embedOpts = {
-        width: '100%',
-        height: '100%',
+      // Utilise le Player (vidéo seule, pas de chat)
+      const player = new Twitch.Player(embedBox, {
         channel: key,
-        // Important: parent requis par Twitch
         parent: parentHost ? [parentHost] : ['localhost'],
         muted: true,
         autoplay: true,
-      };
-
-      const embed = new Twitch.Embed(id, embedOpts);
-      let player = null;
-      embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
-        player = embed.getPlayer();
-        player.setMuted(true); // par défaut muet pour autoriser l\'autoplay
-        persist();
+        width: '100%',
+        height: '100%'
       });
+
+      // Assure le mute au démarrage pour autoriser l'autoplay
+      try { player.setMuted(true); } catch(e){}
+      if (player.addEventListener) {
+        try { player.addEventListener(Twitch.Player.READY, () => { try { player.setMuted(true); } catch(e){} persist(); }); } catch(e){}
+      }
 
       // Actions
       soundBtn.addEventListener('click', () => {
@@ -196,27 +194,19 @@
         if (soloChk.checked) {
           // Couper tous les autres
           players.forEach((obj, otherKey) => {
-            if (obj.player && otherKey !== key) obj.player.setMuted(true);
+            if (obj.player && otherKey !== key) try { obj.player.setMuted(true); } catch(e){}
           });
         }
-        player.setMuted(false);
-        try { player.setVolume(1); } catch(e){}
+        try { player.setMuted(false); player.setVolume(1); } catch(e){}
       });
 
       removeBtn.addEventListener('click', () => {
-        // Arrache la carte et oublie le player
         card.remove();
         players.delete(key);
         persist();
       });
 
-      players.set(key, { embed, player: null });
-      // player est dispo après VIDEO_READY, on le mettra à jour :
-      embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
-        const p = embed.getPlayer();
-        const obj = players.get(key);
-        if (obj) obj.player = p;
-      });
+      players.set(key, { player });
     }
 
     function addChannelFromInput(){
