@@ -3,25 +3,25 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Multi-Twitch - Edition ZEvent 2025</title>
+  <title>Z‑Event 2025 – Multi‑flux (vidéo seule, focus, lien officiel)</title>
   <style>
     :root{--bg:#0f1115;--panel:#171923;--muted:#a0aec0;--text:#e2e8f0;--accent:#6ee7b7;--danger:#f56565;--line:#2d3748}
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Helvetica,Arial,Noto Sans,sans-serif}
     header{padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#121520,#0f1115);position:sticky;top:0;z-index:5}
     h1{margin:0;font-size:clamp(18px,2.5vw,24px)}
-    .sub{font-size:12px;opacity:.8}
+    .actionsTop{display:flex;gap:8px;align-items:center}
+    .btn{background:#1f2937;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px;text-decoration:none}
+    .btn:hover{border-color:#3b4252}
+    .accent{border-color:#256d5a}
+    .danger{border-color:#6b2a2a}
 
     .toolbar{display:grid;gap:8px;padding:12px 16px;background:#0f131a;border-bottom:1px solid var(--line)}
     .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     input[type=text],select{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px 12px;outline:0}
     input[type=text]{width:min(460px,100%)}
-    button{background:#1f2937;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:600;font-size:12px}
-    button:hover{border-color:#3b4252}
-    .accent{border-color:#256d5a}
-    .danger{border-color:#6b2a2a}
 
-    /* Zone focus */
+    /* Focus */
     .focus{display:none;gap:8px;padding:12px;background:#0f131a;border-bottom:1px solid var(--line);align-items:flex-start}
     .focus .video{flex:2}
     .focus .chat{flex:1}
@@ -48,15 +48,25 @@
 </head>
 <body>
   <header>
-    <h1>Z‑Event 2025 – Multi‑flux</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+      <h1>Z‑Event 2025 – Multi‑flux</h1>
+      <div class="actionsTop">
+        <a class="btn accent" href="https://www.zevent.fr" target="_blank" rel="noopener noreferrer">Page officielle Z‑Event</a>
+        <!-- Widget cagnotte (caché par défaut si aucune URL) -->
+        <div id="pot" style="display:none;align-items:center;gap:8px;font-weight:700;background:#141826;border:1px solid var(--line);padding:6px 10px;border-radius:10px;">
+          <span style="opacity:.7;font-weight:600">Cagnotte</span>
+          <span id="potValue" aria-live="polite">—</span>
+        </div>
+      </div>
+    </div>
   </header>
 
   <section class="toolbar">
     <div class="row">
       <input id="channelInput" type="text" list="zevent-list" placeholder="Ajouter un streamer (ex. ZeratoR)" />
       <datalist id="zevent-list"></datalist>
-      <button id="addBtn" class="accent">Ajouter</button>
-      <button id="clearBtn" class="danger">Tout supprimer</button>
+      <button id="addBtn" class="btn accent">Ajouter</button>
+      <button id="clearBtn" class="btn danger">Tout supprimer</button>
       <label>Colonnes :
         <select id="cols">
           <option value="auto">Auto</option>
@@ -66,13 +76,20 @@
         </select>
       </label>
     </div>
+    <div class="row" style="font-size:12px;color:var(--muted)">
+      <span>Affichage du <strong>montant global</strong> (optionnel) :</span>
+      <input id="totalUrl" type="text" placeholder="URL JSON du total (organisateur/outil)" style="min-width:360px" />
+      <button id="saveTotal" class="btn accent">Activer</button>
+      <button id="clearTotal" class="btn">Désactiver</button>
+      <span>(rafraîchit toutes les 15 s ; nécessite une URL publique CORS)</span>
+    </div>
   </section>
 
   <!-- Focus: vidéo 2/3 + chat 1/3 -->
   <section id="focus" class="focus">
     <div class="video">
       <div class="box">
-        <div class="fhead"><div class="title" id="focusTitle">Focus</div><button id="closeFocus" class="danger">Enlever le focus</button></div>
+        <div class="fhead"><div class="title" id="focusTitle">Focus</div><button id="closeFocus" class="btn danger">Enlever le focus</button></div>
         <iframe id="focusVideo" allow="autoplay; fullscreen" allowfullscreen></iframe>
       </div>
     </div>
@@ -142,8 +159,8 @@
       const head=document.createElement('header');
       const title=document.createElement('div');title.className='name';title.textContent=ch;
       const actions=document.createElement('div');actions.className='actions';
-      const focusBtn=document.createElement('button');focusBtn.textContent='Focus';
-      const removeBtn=document.createElement('button');removeBtn.textContent='Supprimer';removeBtn.className='danger';
+      const focusBtn=document.createElement('button');focusBtn.className='btn';focusBtn.textContent='Focus';
+      const removeBtn=document.createElement('button');removeBtn.className='btn danger';removeBtn.textContent='Supprimer';
       actions.append(focusBtn,removeBtn);head.append(title,actions);
 
       const embedBox=document.createElement('div');embedBox.className='embed';
@@ -177,13 +194,40 @@
 
     function restore(){
       let state=null;try{state=JSON.parse(localStorage.getItem('zevent_multi_focus_state')||'null');}catch(e){}
-      const channels=state?.channels||ONSITE_2025.slice(0,6);
-      const cols=state?.cols||'auto';
+      const hasState = !!(state && Array.isArray(state.channels) && state.channels.length);
+      const channels = hasState ? state.channels : ["ZeratoR"]; // ZeratoR par défaut sur premier lancement
+      const cols= hasState ? (state.cols||'auto') : 'auto';
       colsSel.value=cols;applyCols();
       channels.forEach(makeCard);
     }
 
     restore();
+  </script>
+  <script>
+    // ——— Affichage optionnel de la cagnotte globale ———
+    const pot=document.getElementById('pot');
+    const totalUrlInput=document.getElementById('totalUrl');
+    const saveTotalBtn=document.getElementById('saveTotal');
+    const clearTotalBtn=document.getElementById('clearTotal');
+    const potValue=document.getElementById('potValue');
+    let totalTimer=null;
+    function fmtEUR(n){ try{ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n);}catch(e){return n+" €";} }
+    async function fetchTotal(){
+      const url=(localStorage.getItem('ze_total_url')||'').trim();
+      if(!url) return;
+      try{
+        const r=await fetch(url,{cache:'no-store'});
+        const data=await r.json();
+        let v = (data && (data.total ?? data.amount ?? data.sum ?? (data.data&&data.data.total) ?? (data.attributes&&data.attributes.total))) || null;
+        if(typeof v==='string'){ v=parseFloat(v.replace(',','.')); }
+        if(typeof v==='number' && isFinite(v)) potValue.textContent=fmtEUR(v);
+      }catch(e){ /* silencieux */ }
+    }
+    function startTotal(){ if(totalTimer) return; fetchTotal(); totalTimer=setInterval(fetchTotal,15000); pot.style.display='flex'; }
+    function stopTotal(){ if(totalTimer){ clearInterval(totalTimer); totalTimer=null; } pot.style.display='none'; potValue.textContent='—'; }
+    if(saveTotalBtn) saveTotalBtn.addEventListener('click',()=>{ const u=(totalUrlInput?.value||'').trim(); if(u){ localStorage.setItem('ze_total_url',u); startTotal(); }});
+    if(clearTotalBtn) clearTotalBtn.addEventListener('click',()=>{ stopTotal(); localStorage.removeItem('ze_total_url'); });
+    (function(){ const u=localStorage.getItem('ze_total_url'); if(u && totalUrlInput){ totalUrlInput.value=u; startTotal(); } })();
   </script>
 </body>
 </html>
