@@ -3,536 +3,280 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Multi‑Twitch Viewer – Focus + Grille (jusqu’à 8 chaînes)</title>
-  <script src="https://embed.twitch.tv/embed/v1.js"></script>
+  <title>Z‑Event 2025 – Multi‑flux Twitch (sans chat)</title>
+  <!--
+  Page multi‑flux Twitch pour suivre plusieurs streamers du Z‑Event sur une seule page.
+  Contraintes Twitch : le paramètre `parent` DOIT correspondre au nom de domaine qui sert la page.
+  • En local (file://), Twitch bloque l’embed. Servez la page via un petit serveur local ou hébergez‑la (ex: GitHub Pages).
+  • Cette page détecte automatiquement `parent` avec `window.location.hostname`.
+
+  Astuce test local rapide :
+    - Node : `npx serve` dans le dossier, puis ouvrez l’URL fournie.
+    - Python : `python3 -m http.server 8080` puis http://localhost:8080
+
+  Fonctionnalités :
+    - Liste des streamers Z‑Event 2025 (plateau Montpellier) prête à l’emploi, + saisie libre.
+    - Ajout/Suppression de flux, grille responsive, choix du nombre de colonnes.
+    - Mode « Solo audio » (un seul flux non muet à la fois). Par défaut, tout est muet pour autoriser l’autoplay.
+    - Persistance (URL & localStorage).
+    - Pas de focus (volontairement retiré).
+
+  Note légale : cette page n’enregistre pas les flux (pas de capture/recording) et ne contourne aucune mesure de Twitch.
+  -->
   <style>
-    :root{
-      --bg:#0f1115; --panel:#161923; --muted:#8892a6; --text:#e6eaf2; --accent:#7c9cff; --danger:#ff6b6b; --ok:#2ecc71; --warn:#f1c40f;
+    :root {
+      --bg: #0f1115; --panel:#171923; --muted:#a0aec0; --text:#e2e8f0; --accent:#6ee7b7; --danger:#f56565; --line:#2d3748;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;font:14px/1.4 system-ui,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    header{position:sticky;top:0;z-index:5;backdrop-filter:saturate(1.2) blur(6px);background:linear-gradient(180deg, rgba(15,17,21,.95), rgba(15,17,21,.75) 70%, rgba(15,17,21,0));border-bottom:1px solid #222;padding:.75rem 1rem}
-    .bar{display:grid;grid-template-columns:1fr auto auto auto;gap:.75rem;align-items:center}
-    .controls{display:flex;flex-wrap:wrap;gap:.5rem}
-    .field{display:flex;gap:.5rem;align-items:center}
-    input[type=text]{min-width:220px;padding:.5rem .6rem;border:1px solid #2a2f3a;border-radius:.5rem;background:#0c0e13;color:var(--text)}
-    input[type=checkbox]{transform:scale(1.1)}
-    button{cursor:pointer;border:1px solid #2a2f3a;background:var(--panel);color:var(--text);padding:.5rem .7rem;border-radius:.6rem}
-    button.primary{border-color:#3552ff33;background:linear-gradient(180deg,#2b3560,#212845)}
-    button.danger{border-color:#ff6b6b33;background:linear-gradient(180deg,#5b2b2b,#442121);color:#ffdede}
-    button:disabled{opacity:.5;cursor:not-allowed}
-    .hint{font-size:12px;color:var(--muted)}
-    .wrap{display:grid;grid-template-columns: minmax(320px,1fr) minmax(320px,1.2fr);gap:.75rem;padding: .75rem}
-    @media (max-width: 1100px){.wrap{grid-template-columns:1fr}}
-    .panel{background:var(--panel);border:1px solid #252a35;border-radius:.8rem;overflow:hidden}
-    .panel h2{margin:0;font-size:14px;padding:.6rem .8rem;border-bottom:1px solid #242a34;color:#cfd6e6;background:#141823}
-    .focus{aspect-ratio:16/9;position:relative}
-    .focus .slot{position:absolute;inset:0}
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.5rem;padding:.5rem}
-    .tile{position:relative;aspect-ratio:16/9;border-radius:.6rem;overflow:hidden;border:1px solid #242a34;background:#0c0e13}
-    .tile .slot{position:absolute;inset:0}
-    .overlay{position:absolute;inset:auto 0 0 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.7) 40%);padding:.35rem .45rem;display:flex;gap:.35rem;align-items:center;justify-content:space-between;font-size:12px}
-    .name{color:#fff;max-width:50%;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
-    .btns{display:flex;gap:.35rem}
-    .btn{border:1px solid #2b2f3a;background:#12161f;color:#e6eaf2;border-radius:.4rem;padding:.25rem .45rem;cursor:pointer}
-    .btn:hover{background:#1a1f2b}
-    .badge{font-size:11px;color:#000;background:var(--warn);padding:.05rem .35rem;border-radius:.35rem;margin-left:.5rem}
-    .muted{opacity:.85}
-    .footer{padding:.5rem .8rem;border-top:1px solid #242a34;color:var(--muted);font-size:12px}
-    .grid-empty{padding:1rem;color:var(--muted)}
-    .warn{color:#f9d36a}
-    .ok{color:#9ee6a2}
-    .problem{color:#ffb0b0}
-    .spacer{flex:1}
-    .vol{display:flex;gap:.5rem;align-items:center}
-    input[type=range]{accent-color:var(--accent)}
-    .kbd{font:12px/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; background:#0c0e13;border:1px solid #2a2f3a;border-radius:.35rem;padding:.08rem .35rem;color:#cfd6e6}
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, "Helvetica Neue", Arial, "Noto Sans", sans-serif; background:var(--bg); color:var(--text); }
+    header { padding: 12px 16px; border-bottom:1px solid var(--line); background:linear-gradient(180deg, #121520, #0f1115); position:sticky; top:0; z-index:5; }
+    h1 { margin:0; font-size: clamp(18px, 2.5vw, 24px); }
+    .sub { font-size:12px; opacity:.8; }
+
+    .toolbar { display:grid; gap:8px; grid-template-columns: 1fr; padding:12px 16px; background: #0f131a; border-bottom:1px solid var(--line); }
+    .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .row > * { flex: 0 0 auto; }
+    input[type="text"], select { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:8px; padding:10px 12px; outline:none; }
+    input[type="text"] { width: min(460px, 100%); }
+    button { background:#1f2937; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px 12px; cursor:pointer; font-weight:600; }
+    button:hover { border-color:#3b4252; }
+    .accent { border-color:#256d5a; }
+    .danger { border-color:#6b2a2a; }
+    label { font-size:14px; opacity:.9; }
+    .hint { font-size:12px; color:var(--muted); }
+
+    .grid { display:grid; gap:10px; padding:12px 16px 40px; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+    .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+    .card header { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; position:static; background:#121421; border-bottom:1px solid var(--line); }
+    .card header .name { font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .card header .actions { display:flex; gap:6px; }
+    .card header button { padding:6px 10px; font-size:12px; border-radius:8px; }
+    .embed { aspect-ratio: 16 / 9; background:#0b0d14; display:block; }
+
+    .banner { background:#2d3748; color:#fff; padding:8px 12px; font-size:13px; }
+    .banner strong { color:var(--accent); }
+
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:999px; background:#141825; }
+    .pill input { margin:0; }
+
+    footer { padding:10px 16px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); }
+    a { color: #93e6a5; text-decoration: none; }
+    a:hover { text-decoration: underline; }
   </style>
+  <script src="https://player.twitch.tv/js/embed/v1.js"></script>
 </head>
 <body>
   <header>
-    <div class="bar">
-      <div class="controls">
-        <div class="field">
-          <input id="channelInput" type="text" placeholder="Ajouter une chaîne (ex: zerator)" />
-          <button id="addBtn" class="primary" title="Ajouter">Ajouter</button>
-          <button id="addManyBtn" title="Ajouter plusieurs (virgules)">Ajouter plusieurs</button>
-        </div>
-        <div class="field vol" title="Volume du flux en focus">
-          <label for="volRange">Volume focus</label>
-          <input id="volRange" type="range" min="0" max="100" value="40" />
-        </div>
-        <div class="field">
-          <label><input id="singleAudio" type="checkbox" checked /> Audio unique</label>
-        </div>
-      </div>
-      <div class="controls">
-        <button id="startAll" class="primary">Lancer tous (muet)</button>
-        <button id="stopAll">Mettre en pause</button>
-        <button id="muteAll">Tout muet</button>
-        <button id="unmuteFocus">Son sur le focus</button>
-      </div>
-      <div class="controls">
-        <button id="saveState">Enregistrer</button>
-        <button id="loadState">Charger</button>
-        <button id="exportState">Exporter JSON</button>
-        <button id="importState">Importer JSON</button>
-        <button id="clearAll" class="danger">Tout supprimer</button>
-      </div>
-    </div>
-    <div id="hostWarning" class="hint" style="margin-top:.4rem"></div>
-    <details id="presets" class="hint" style="margin:.5rem 1rem .25rem; background:#111522;border:1px solid #252a35;border-radius:.6rem;">
-      <summary style="cursor:pointer;padding:.6rem .8rem;color:#cfd6e6">Préréglages Z‑Event 2025 : ajouter des participants sans taper les noms</summary>
-      <div style="padding:.6rem .8rem;">
-        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin:.25rem 0 .75rem">
-          <button id="addTop47" class="primary">Ajouter les 47 (présents sur place)</button>
-          <button id="pickSome">Sélectionner manuellement…</button>
-          <span class="hint">Vous pouvez corriger les logins avant d'ajouter.</span>
-        </div>
-        <div id="picker" class="panel" style="display:none;max-height:320px;overflow:auto;padding:.5rem;background:#0c0e13">
-          <div class="hint" style="margin:.25rem 0 .5rem">Cochez les créateurs à ajouter. Le champ « login » est éditable si l’auto‑déduction ne correspond pas exactement au compte Twitch.</div>
-          <div id="pickerList" class="grid" style="grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.5rem"></div>
-          <div style="display:flex;gap:.5rem;justify-content:flex-end;padding:.5rem .25rem 0">
-            <button id="pickerAdd" class="primary">Ajouter la sélection</button>
-            <button id="pickerClose">Fermer</button>
-          </div>
-        </div>
-      </div>
-    </details>
+    <h1>Z‑Event 2025 – Multi‑flux Twitch <span class="sub">(vidéo seule, sans chat)</span></h1>
   </header>
 
-  <main class="wrap">
-    <section class="panel">
-      <h2>Focus</h2>
-      <div id="focus" class="focus">
-        <div id="focusSlot" class="slot"></div>
-      </div>
-      <div class="footer hint">Astuce : cliquez sur une vignette de la grille pour la mettre en focus. <span class="kbd">F</span> met la première vignette en focus, <span class="kbd">M</span> active le son sur le focus, <span class="kbd">P</span> lance/stoppe tous.</div>
-    </section>
+  <div id="parentBanner" class="banner" style="display:none"></div>
 
-    <section class="panel">
-      <h2>Grille des autres flux <span id="countBadge" class="badge">0</span></h2>
-      <div id="grid" class="grid"></div>
-      <div id="gridEmpty" class="grid-empty hint" style="display:none">Ajoutez des chaînes ci‑dessus. Maximum : 8. Exemple : <span class="kbd">zerator,ponce,baghera_jones,oka7ka</span></div>
-      <div class="footer hint">Mode audio : <strong id="audioModeLabel">unique</strong>. Vous pouvez passer en multi‑audio (plusieurs flux sonores) en décochant la case ci‑dessus.</div>
-    </section>
-  </main>
+  <section class="toolbar">
+    <div class="row">
+      <input id="channelInput" type="text" list="zevent-list" placeholder="Ajouter un streamer (ex. ZeratoR)" />
+      <datalist id="zevent-list"></datalist>
+      <button id="addBtn" class="accent">Ajouter</button>
+      <button id="clearBtn" class="danger">Tout supprimer</button>
+    </div>
+    <div class="row">
+      <label class="pill"><input id="soloAudio" type="checkbox" />&nbsp;Mode Solo audio</label>
+      <label>Colonnes :
+        <select id="cols">
+          <option value="auto">Auto</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+        </select>
+      </label>
+      <span class="hint">Astuce : cliquez sur « Son » d’une carte pour n’entendre que ce flux (et couper les autres si « Solo » est activé).</span>
+    </div>
+  </section>
+
+  <main id="grid" class="grid"></main>
+
+  <footer>
+    Z‑Event 2025 : sélection préremplie des 50 streamers « plateau Montpellier ». Saisissez librement d’autres chaînes si besoin.
+  </footer>
 
   <script>
-  ;(() => {
-    const MAX = 8
-    const state = {
-      streams: [],           // {id, channel, embed, player, muted}
-      focusIndex: -1,
-      singleAudio: true,
-      volume: 0.4
+    // ————————————— Données Z‑Event 2025 (plateau Montpellier) —————————————
+    // Source éditoriale (dernière màj 28/08/2025) : voir README / description de la page.
+    const ONSITE_2025 = [
+      "AlphaCast","AngleDroit","AntoineDaniel","AVAMind","BagheraJones","byilhann","chowh1","Clemovitch","CrocodyleTV","DamDamLive","Doigby","Domingo","DrFeelGood","EnjoyPhoenix","Etoiles","Flamby","Gius","Gom4rt","helydia","HortyUnderscore","Jirayalecochon","JLTomy","Joueur_du_Grenier","Joyca","KennyStream","Lapi","LittleBigWhale","m4fgaming","Mastu","mistermv","MoMaN","Mynthos","Nico_la","Ponce","Pressea","Rivenzi","Sakor_","samueletienne","Shisheyu","Sundae","SylvainLyve","TheGreatReview","TheGuill84","theodort","Ultia","zacknani","ZeratoR"
+    ];
+
+    // ————————————— Éléments DOM —————————————
+    const grid = document.getElementById('grid');
+    const input = document.getElementById('channelInput');
+    const datalist = document.getElementById('zevent-list');
+    const addBtn = document.getElementById('addBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const colsSel = document.getElementById('cols');
+    const soloChk = document.getElementById('soloAudio');
+    const parentBanner = document.getElementById('parentBanner');
+
+    // Remplit la datalist
+    ONSITE_2025.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      datalist.appendChild(opt);
+    });
+
+    // Résolution du paramètre parent pour Twitch
+    const parentHost = window.location.hostname;
+    if (!parentHost) {
+      parentBanner.style.display = 'block';
+      parentBanner.innerHTML = 'Cette page est ouverte en local (file://). Twitch bloque l\'intégration sans domaine. Servez la page via un serveur local (ex. <strong>npx serve</strong>) ou hébergez-la (GitHub Pages).';
     }
 
-    const els = {
-      input: document.getElementById('channelInput'),
-      add: document.getElementById('addBtn'),
-      addMany: document.getElementById('addManyBtn'),
-      vol: document.getElementById('volRange'),
-      singleAudio: document.getElementById('singleAudio'),
-      startAll: document.getElementById('startAll'),
-      stopAll: document.getElementById('stopAll'),
-      muteAll: document.getElementById('muteAll'),
-      unmuteFocus: document.getElementById('unmuteFocus'),
-      save: document.getElementById('saveState'),
-      load: document.getElementById('loadState'),
-      export: document.getElementById('exportState'),
-      import: document.getElementById('importState'),
-      clear: document.getElementById('clearAll'),
-      grid: document.getElementById('grid'),
-      gridEmpty: document.getElementById('gridEmpty'),
-      focus: document.getElementById('focus'),
-      focusSlot: document.getElementById('focusSlot'),
-      hostWarning: document.getElementById('hostWarning'),
-      countBadge: document.getElementById('countBadge'),
-      audioModeLabel: document.getElementById('audioModeLabel')
-    }
+    // Gestion des players
+    const players = new Map(); // channel(lower) -> { embed, player }
 
-    // Helpers
-    const uid = () => 's' + Math.random().toString(36).slice(2,9)
-    const norm = (s) => (s||'').trim().replace(/^https?:\/\/www\.twitch\.tv\//i,'').replace(/\s+/g,'_')
+    function channelKey(name){ return (name || '').trim().replace(/^\s+|\s+$/g,'').toLowerCase(); }
+    function normName(name){ return (name || '').trim(); }
 
-    function parentHosts(){
-      const h = []
-      if (location.hostname) h.push(location.hostname)
-      // Ajouts courants pour dev
-      ;['localhost','127.0.0.1'].forEach(p=>{ if(!h.includes(p)) h.push(p) })
-      return h
-    }
+    function makeCard(channel){
+      const key = channelKey(channel);
+      if (!key) return;
+      if (players.has(key)) return;
 
-    function showHostWarning(){
-      if (!/^https?:$/.test(location.protocol)){
-        els.hostWarning.innerHTML = '<span class="problem">Le fichier est ouvert en local (file://)</span>. Pour que les lecteurs Twitch s’affichent, servez cette page via HTTP(S). Exemple : <span class="kbd">python -m http.server 8000</span> puis ouvrez <span class="kbd">http://localhost:8000</span>. '
-      } else {
-        els.hostWarning.innerHTML = 'Domaine autorisé pour Twitch : <span class="ok">' + parentHosts().join(', ') + '</span>.'
-      }
-    }
+      const id = `tw_${key}_${Math.random().toString(36).slice(2,9)}`;
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.dataset.channel = key;
 
-    function updateBadges(){
-      els.countBadge.textContent = state.streams.length + (state.focusIndex>=0? ' (+'+1+' focus)':'')
-      els.audioModeLabel.textContent = state.singleAudio ? 'unique' : 'multiple'
-      els.gridEmpty.style.display = state.streams.length? 'none':'block'
-    }
+      const head = document.createElement('header');
+      const title = document.createElement('div');
+      title.className = 'name';
+      title.textContent = normName(channel);
 
-    function layout(){
-      // Reconstruire la grille
-      els.grid.innerHTML = ''
-      state.streams.forEach((s,idx)=>{
-        if (idx === state.focusIndex) return
-        const tile = document.createElement('div')
-        tile.className = 'tile' + (s.muted? ' muted':'')
-        tile.dataset.index = idx
-        const slot = document.createElement('div')
-        slot.className = 'slot'
-        slot.id = s.id
-        tile.appendChild(slot)
-        const ov = document.createElement('div')
-        ov.className = 'overlay'
-        const name = document.createElement('div')
-        name.className = 'name'
-        name.textContent = s.channel
-        ov.appendChild(name)
-        const btns = document.createElement('div')
-        btns.className = 'btns'
-        btns.innerHTML = `
-          <button class="btn" data-act="focus">Focus</button>
-          <button class="btn" data-act="mute">${s.muted? 'Unmute':'Mute'}</button>
-          <button class="btn" data-act="left" title="Monter">⬆</button>
-          <button class="btn" data-act="right" title="Descendre">⬇</button>
-          <button class="btn" data-act="remove" title="Supprimer">✕</button>
-        `
-        ov.appendChild(btns)
-        tile.appendChild(ov)
-        els.grid.appendChild(tile)
-      })
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const soundBtn = document.createElement('button');
+      soundBtn.textContent = 'Son';
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'Supprimer';
+      removeBtn.className = 'danger';
+      actions.append(soundBtn, removeBtn);
+      head.append(title, actions);
 
-      // Focus
-      els.focusSlot.innerHTML = ''
-      if (state.focusIndex>=0 && state.streams[state.focusIndex]){
-        const s = state.streams[state.focusIndex]
-        const slot = document.createElement('div')
-        slot.className = 'slot'
-        slot.id = s.id
-        els.focusSlot.appendChild(slot)
-      }
+      const embedBox = document.createElement('div');
+      embedBox.className = 'embed';
+      embedBox.id = id;
 
-      // Recréer tous les embeds (nécessaire car on a bougé les slots)
-      state.streams.forEach(initEmbedIfNeeded)
-      syncAudio()
-      updateBadges()
-    }
+      card.append(head, embedBox);
+      grid.appendChild(card);
 
-    function initEmbedIfNeeded(s){
-      if (document.getElementById(s.id) && !s.embed){
-        try{
-          s.embed = new Twitch.Embed(s.id, {
-            channel: s.channel,
-            width: '100%',
-            height: '100%',
-            muted: true,
-            autoplay: true,
-            parent: parentHosts()
-          })
-          s.embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
-            s.player = s.embed.getPlayer()
-            if (s.player){
-              s.player.setMuted(true)
-              s.player.setVolume(state.volume)
-            }
-          })
-        }catch(e){ console.warn('Embed error', e) }
-      }
-    }
+      const embedOpts = {
+        width: '100%',
+        height: '100%',
+        channel: key,
+        // Important: parent requis par Twitch
+        parent: parentHost ? [parentHost] : ['localhost'],
+        muted: true,
+        autoplay: true,
+      };
 
-    function addChannel(raw){
-      const channel = norm(raw)
-      if (!channel) return
-      if (state.streams.length >= MAX){ alert('Limite de '+MAX+' chaînes atteinte.'); return }
-      if (state.streams.some(s=>s.channel.toLowerCase()===channel.toLowerCase())){ alert('Déjà présent.'); return }
-      const s = { id: uid(), channel, embed: null, player: null, muted: true }
-      state.streams.push(s)
-      if (state.focusIndex===-1) state.focusIndex = 0
-      layout()
-    }
+      const embed = new Twitch.Embed(id, embedOpts);
+      let player = null;
+      embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
+        player = embed.getPlayer();
+        player.setMuted(true); // par défaut muet pour autoriser l\'autoplay
+        persist();
+      });
 
-    function removeIndex(idx){
-      if (idx<0 || idx>=state.streams.length) return
-      if (state.streams[idx].player){ try{ state.streams[idx].player.pause() }catch(_){} }
-      state.streams.splice(idx,1)
-      if (state.focusIndex === idx) state.focusIndex = state.streams.length? 0 : -1
-      else if (state.focusIndex > idx) state.focusIndex--
-      layout()
-    }
-
-    function moveIndex(idx, dir){
-      const j = idx + (dir<0? -1:1)
-      if (idx<0 || j<0 || idx>=state.streams.length || j>=state.streams.length) return
-      ;[state.streams[idx], state.streams[j]] = [state.streams[j], state.streams[idx]]
-      if (state.focusIndex===idx) state.focusIndex=j
-      else if (state.focusIndex===j) state.focusIndex=idx
-      layout()
-    }
-
-    function setFocus(idx){
-      if (idx<0 || idx>=state.streams.length) return
-      state.focusIndex = idx
-      layout()
-    }
-
-    function syncAudio(){
-      const single = state.singleAudio
-      const focus = state.streams[state.focusIndex]
-      state.streams.forEach((s, idx) => {
-        if (!s.player) return
-        if (single){
-          if (idx === state.focusIndex){ s.player.setMuted(false); s.player.setVolume(state.volume); s.muted=false }
-          else { s.player.setMuted(true); s.muted=true }
-        } else {
-          // Respecter l’état s.muted en multi‑audio
-          s.player.setMuted(!!s.muted)
-          if (!s.muted) s.player.setVolume(state.volume)
+      // Actions
+      soundBtn.addEventListener('click', () => {
+        if (!player) return;
+        if (soloChk.checked) {
+          // Couper tous les autres
+          players.forEach((obj, otherKey) => {
+            if (obj.player && otherKey !== key) obj.player.setMuted(true);
+          });
         }
-      })
-      // Mettre à jour les libellés boutons
-      document.querySelectorAll('.tile').forEach(tile=>{
-        const idx = Number(tile.dataset.index)
-        const s = state.streams[idx]
-        const btn = tile.querySelector('button[data-act="mute"]')
-        if (btn) btn.textContent = s && !s.muted? 'Mute' : 'Unmute'
-        tile.classList.toggle('muted', !!(s && s.muted))
-      })
+        player.setMuted(false);
+        try { player.setVolume(1); } catch(e){}
+      });
+
+      removeBtn.addEventListener('click', () => {
+        // Arrache la carte et oublie le player
+        card.remove();
+        players.delete(key);
+        persist();
+      });
+
+      players.set(key, { embed, player: null });
+      // player est dispo après VIDEO_READY, on le mettra à jour :
+      embed.addEventListener(Twitch.Embed.VIDEO_READY, () => {
+        const p = embed.getPlayer();
+        const obj = players.get(key);
+        if (obj) obj.player = p;
+      });
     }
 
-    function startAll(){
-      state.streams.forEach(s=>{ if (s.player){ try{s.player.play()}catch(_){/* ignore */} }})
-    }
-    function pauseAll(){ state.streams.forEach(s=>{ if (s.player){ try{s.player.pause()}catch(_){/* ignore */} }}) }
-
-    function save(){
-      const data = {
-        v:1,
-        singleAudio: state.singleAudio,
-        volume: state.volume,
-        focusIndex: state.focusIndex,
-        channels: state.streams.map(s=>({channel:s.channel, muted:s.muted}))
-      }
-      localStorage.setItem('multiTwitchState', JSON.stringify(data))
-      alert('Configuration enregistrée.')
+    function addChannelFromInput(){
+      const v = normName(input.value);
+      if (!v) return;
+      makeCard(v);
+      input.value = '';
     }
 
-    function load(){
-      const raw = localStorage.getItem('multiTwitchState')
-      if (!raw){ alert('Aucune configuration enregistrée.'); return }
-      try{
-        const d = JSON.parse(raw)
-        resetAll()
-        state.singleAudio = !!d.singleAudio
-        state.volume = Math.max(0, Math.min(1, d.volume ?? .4))
-        (d.channels||[]).slice(0,MAX).forEach(it=> addChannel(it.channel))
-        state.focusIndex = Math.min(Math.max(0, d.focusIndex||0), state.streams.length-1)
-        // Appliquer muets si multi‑audio
-        if (!state.singleAudio){
-          (d.channels||[]).forEach((it,i)=>{ if (state.streams[i]) state.streams[i].muted = !!it.muted })
-        }
-        els.singleAudio.checked = state.singleAudio
-        els.vol.value = Math.round(state.volume*100)
-        layout()
-      }catch(e){ alert('Échec du chargement.') }
+    addBtn.addEventListener('click', addChannelFromInput);
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ addChannelFromInput(); }});
+    clearBtn.addEventListener('click', ()=>{ grid.innerHTML=''; players.clear(); persist(); });
+
+    // Gestion des colonnes
+    colsSel.addEventListener('change', applyCols);
+    function applyCols(){
+      grid.classList.remove('cols-2','cols-3','cols-4');
+      const v = colsSel.value;
+      if (v==='2' || v==='3' || v==='4') grid.classList.add(`cols-${v}`);
+      persist();
     }
 
-    function exportJSON(){
-      const obj = {
-        channels: state.streams.map(s=>s.channel),
-        focus: state.streams[state.focusIndex]?.channel || null,
-        singleAudio: state.singleAudio,
-        volume: state.volume
-      }
-      const text = JSON.stringify(obj, null, 2)
-      navigator.clipboard.writeText(text).then(()=>{
-        alert('JSON copié dans le presse‑papiers.')
-      },()=>{ prompt('Copiez le JSON :', text) })
+    // Persistance (URL + localStorage)
+    function persist(){
+      const list = Array.from(grid.querySelectorAll('.card')).map(el => el.querySelector('.name').textContent.trim());
+      const state = {
+        channels: list,
+        cols: colsSel.value,
+        solo: soloChk.checked
+      };
+      localStorage.setItem('zevent_multi_state', JSON.stringify(state));
+      const params = new URLSearchParams(window.location.search);
+      params.set('c', list.map(s=>channelKey(s)).join(','));
+      params.set('cols', state.cols);
+      params.set('solo', state.solo ? '1':'0');
+      const newUrl = `${window.location.pathname}?${params.toString()}`;
+      history.replaceState(null,'',newUrl);
     }
 
-    function importJSON(){
-      const text = prompt('Collez un JSON {channels:[..], focus:"..."} :')
-      if (!text) return
-      try{
-        const obj = JSON.parse(text)
-        resetAll()
-        (obj.channels||[]).slice(0,MAX).forEach(c=> addChannel(c))
-        const f = (obj.focus||'').toLowerCase()
-        const fi = state.streams.findIndex(s=>s.channel.toLowerCase()===f)
-        if (fi>=0) state.focusIndex = fi
-        state.singleAudio = !!obj.singleAudio
-        state.volume = Math.max(0, Math.min(1, obj.volume ?? .4))
-        els.singleAudio.checked = state.singleAudio
-        els.vol.value = Math.round(state.volume*100)
-        layout()
-      }catch(e){ alert('JSON invalide.') }
+    function restore(){
+      const params = new URLSearchParams(window.location.search);
+      const urlChannels = (params.get('c')||'').split(',').filter(Boolean);
+      const urlCols = params.get('cols');
+      const urlSolo = params.get('solo');
+
+      let state = null;
+      try { state = JSON.parse(localStorage.getItem('zevent_multi_state')||'null'); } catch(e){}
+
+      const channels = urlChannels.length ? urlChannels : (state?.channels || ONSITE_2025.slice(0,6));
+      const cols = urlCols || state?.cols || 'auto';
+      const solo = (urlSolo !== null) ? (urlSolo==='1') : !!(state?.solo);
+
+      colsSel.value = cols;
+      applyCols();
+      soloChk.checked = solo;
+
+      channels.forEach(ch => makeCard(ch));
     }
 
-    function resetAll(){
-      pauseAll()
-      state.streams = []
-      state.focusIndex = -1
-      document.querySelectorAll('.slot').forEach(n=>{ n.innerHTML='' })
-      layout()
-    }
-
-    // UI events
-    els.add.onclick = () => { addChannel(els.input.value); els.input.value=''; els.input.focus() }
-    els.addMany.onclick = () => {
-      const raw = prompt('Entrez des chaînes séparées par des virgules :')
-      if (!raw) return
-      raw.split(',').map(s=>s.trim()).filter(Boolean).forEach(c=> addChannel(c))
-    }
-    els.input.addEventListener('keydown', e=>{ if (e.key==='Enter') els.add.click() })
-
-    els.vol.oninput = () => { state.volume = Number(els.vol.value)/100; syncAudio() }
-    els.singleAudio.onchange = () => { state.singleAudio = !!els.singleAudio.checked; syncAudio() }
-
-    els.startAll.onclick = () => startAll()
-    els.stopAll.onclick = () => pauseAll()
-    els.muteAll.onclick = () => { state.streams.forEach((s,i)=>{ s.muted=true }); syncAudio() }
-    els.unmuteFocus.onclick = () => { if (state.focusIndex>=0){ state.streams[state.focusIndex].muted=false; syncAudio() } }
-
-    els.save.onclick = () => save()
-    els.load.onclick = () => load()
-    els.export.onclick = () => exportJSON()
-    els.import.onclick = () => importJSON()
-    els.clear.onclick = () => { if (confirm('Supprimer toutes les chaînes ?')) resetAll() }
-
-    els.grid.addEventListener('click', (e)=>{
-      const btn = e.target.closest('button.btn')
-      const tile = e.target.closest('.tile')
-      if (!tile) return
-      const idx = Number(tile.dataset.index)
-      if (!btn){ setFocus(idx); return }
-      const act = btn.dataset.act
-      if (act==='focus') setFocus(idx)
-      if (act==='mute'){ const s = state.streams[idx]; s.muted = !s.muted; syncAudio() }
-      if (act==='remove') removeIndex(idx)
-      if (act==='left') moveIndex(idx, -1)
-      if (act==='right') moveIndex(idx, +1)
-    })
-
-    // Raccourcis clavier
-    window.addEventListener('keydown', (e)=>{
-      if (['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return
-      if (e.key==='f' || e.key==='F'){ if (state.streams.length) setFocus(0) }
-      if (e.key==='m' || e.key==='M'){ if (state.focusIndex>=0){ state.singleAudio=true; els.singleAudio.checked=true; state.streams[state.focusIndex].muted=false; syncAudio() } }
-      if (e.key==='p' || e.key==='P'){ // play/pause toggle
-        const playing = state.streams.some(s=>{ try{return s.player && s.player.isPaused && !s.player.isPaused()}catch(_){return false} })
-        if (playing) pauseAll(); else startAll()
-      }
-    })
-
-    function fromQuery(){
-      const url = new URL(location.href)
-      const list = (url.searchParams.get('channels')||'').split(',').map(norm).filter(Boolean)
-      const focus = norm(url.searchParams.get('focus'))
-      const single = url.searchParams.get('single')
-      const vol = url.searchParams.get('vol')
-      list.slice(0,MAX).forEach(addChannel)
-      if (focus){ const i = state.streams.findIndex(s=>s.channel.toLowerCase()===focus.toLowerCase()); if (i>=0) state.focusIndex=i }
-      if (single!=null) { state.singleAudio = single!== '0'; els.singleAudio.checked = state.singleAudio }
-      if (vol!=null) { state.volume = Math.max(0, Math.min(1, Number(vol))); els.vol.value = Math.round(state.volume*100) }
-      layout()
-    }
-
-    showHostWarning()
-
-    // ====== Z‑Event 2025 presets ======
-    const ZEVENT25_DISPLAY = [
-      'Alphacast','Angle Droit','Antoine Daniel','AvaMind','BagheraJones','Byilhan','ChowH1','Clemovitch','CrocodyleTV','DamDam Live','Doigby','Domingo','DrFeelGood','EnjoyPhoenix','Etoiles','Flamby','Gius','Gom4rt','Helydia','HortyUnderscore','Jirayalecochon','JL Tomy','Joueur du Grenier','Joyca','KennyStream','Lapi','LittleBigWhale','m4fgaming','Mastu','Mistermv','Moman','Mynthos','Nico_la','Ponce','Pressea','Rivenzi','Sakor','Samuel Étienne','Shisheyu','Sundae','SylvainLyve','TheGreatReview','TheGuill84','Théodort','Ultia','Zack Nani','ZeratoR'
-    ]
-
-    function slugifyLogin(name){
-      const map = {
-        'ZeratoR':'zerator',
-        'DamDam Live':'damdamlive',
-        'Joueur du Grenier':'joueur_du_grenier',
-        'Samuel Étienne':'samueletienne',
-        'Théodort':'theodort',
-        'TheGreatReview':'thegreatreview',
-        'TheGuill84':'theguill84',
-        'BagheraJones':'baghera_jones',
-        'DrFeelGood':'dfg',
-        'KennyStream':'kennystream',
-        'HortyUnderscore':'horty'
-      }
-      if (map[name]) return map[name]
-      return name
-        .normalize('NFD').replace(/[̀-ͯ]+/g,'')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g,'_')
-        .replace(/^_|_$/g,'')
-    }
-
-    function addTop47(){
-      const toAdd = ZEVENT25_DISPLAY.map(n=> slugifyLogin(n))
-      toAdd.forEach(addChannel)
-    }
-
-    function openPicker(){
-      els.picker.style.display='block'
-      if (!els.pickerList.dataset.built){
-        els.pickerList.dataset.built = '1'
-        ZEVENT25_DISPLAY.forEach(name=>{
-          const li = document.createElement('div')
-          li.className = 'tile'
-          li.style.aspectRatio='auto'; li.style.padding='.5rem'
-          const login = slugifyLogin(name)
-          li.innerHTML = `
-            <label style="display:flex;gap:.5rem;align-items:center">
-              <input type="checkbox" class="pickCheck" data-name="${name}" data-login="${login}">
-              <span style="flex:1 1 auto">${name}</span>
-              <input type="text" class="pickLogin" value="${login}" style="width:140px" title="Login Twitch (éditable)">
-            </label>`
-          els.pickerList.appendChild(li)
-        })
-        els.pickerList.addEventListener('input', (e)=>{
-          const row = e.target.closest('.tile'); if(!row) return
-          const c = row.querySelector('.pickCheck'); const t = row.querySelector('.pickLogin');
-          if (e.target===t){ c.dataset.login = t.value.trim() }
-        })
-      }
-    }
-
-    function closePicker(){ els.picker.style.display='none' }
-
-    function addPicked(){
-      const rows = els.pickerList.querySelectorAll('.pickCheck:checked')
-      rows.forEach(c=> addChannel(c.dataset.login))
-      closePicker()
-    }
-
-    // Hook UI pour presets
-    els.addTop47 = document.getElementById('addTop47')
-    els.pickSome = document.getElementById('pickSome')
-    els.picker = document.getElementById('picker')
-    els.pickerList = document.getElementById('pickerList')
-    els.pickerAdd = document.getElementById('pickerAdd')
-    els.pickerClose = document.getElementById('pickerClose')
-
-    els.addTop47?.addEventListener('click', addTop47)
-    els.pickSome?.addEventListener('click', openPicker)
-    els.pickerAdd?.addEventListener('click', addPicked)
-    els.pickerClose?.addEventListener('click', closePicker)
-
-    fromQuery()
-    if (!state.streams.length){ updateBadges() }
-  })()
+    restore();
   </script>
-
-  <!--
-    NOTE IMPORTANTE – Enregistrement :
-    L’enregistrement direct des flux Twitch depuis cette page n’est pas réalisable côté navigateur, pour des raisons de politique CORS/iframe et des Conditions d’Utilisation Twitch. Cette page gère la mise au point multi‑flux et l’audio/focus. Pour enregistrer, utilisez des outils côté poste (OBS, etc.) en respectant les CGU.
-  -->
 </body>
 </html>
